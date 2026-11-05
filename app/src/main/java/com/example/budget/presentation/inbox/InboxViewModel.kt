@@ -31,7 +31,6 @@ data class InboxState(
     val categories: List<ExpenseCategory> = emptyList(),
     val holdingFundId: String? = null,
     val status: ScanStatus = ScanStatus(),
-    val hasKey: Boolean = true,
     val hidden: Boolean = false,
     val editing: Draft? = null,
     val message: String? = null
@@ -54,13 +53,13 @@ class InboxViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val lookups = combine(assets.getAllAssets(), funds.getAllFundCategories(), categories.getAllExpenseCategories()) { a, f, c -> Triple(a, f, c) }
-            val prefs = combine(settings.geminiApiKey, settings.isBalanceHidden, settings.holdingFundId) { k, h, hold -> Triple(k, h, hold) }
-            combine(scan.drafts, lookups, scan.status, prefs) { drafts, (a, f, c), status, (key, hidden, hold) ->
+            val prefs = combine(settings.isBalanceHidden, settings.holdingFundId) { h, hold -> h to hold }
+            combine(scan.drafts, lookups, scan.status, prefs) { drafts, (a, f, c), status, (hidden, hold) ->
                 _state.value.copy(
                     drafts = drafts,
                     problems = drafts.mapNotNull { d -> scan.problem(d, a)?.let { d.id to it } }.toMap(),
                     assets = a, funds = f, categories = c, holdingFundId = hold,
-                    status = status, hasKey = key.isNotBlank(), hidden = hidden
+                    status = status, hidden = hidden
                 )
             }.collect { _state.value = it }
         }

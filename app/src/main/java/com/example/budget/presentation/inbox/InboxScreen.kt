@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -121,20 +120,6 @@ fun InboxContent(
                     SoftButton("Screenshots", onClick = onPick, icon = Icons.Outlined.PhotoLibrary, modifier = Modifier.weight(1f))
                 }
             }
-            if (!state.hasKey) {
-                item {
-                    Spacer(Modifier.height(12.dp))
-                    Group {
-                        ListRow(
-                            title = "Connect Gemini to read receipts",
-                            subtitle = "Paste a free API key in Settings",
-                            leading = { Glyph(Icons.Outlined.AutoAwesome, tint = c.emerald, background = c.emeraldTint) },
-                            trailing = { SoftButton("Set up", onClick = onOpenSettings) },
-                            onClick = onOpenSettings
-                        )
-                    }
-                }
-            }
             if (state.status.working > 0) {
                 item {
                     Row(
@@ -154,7 +139,7 @@ fun InboxContent(
                 item {
                     EmptyNote(
                         "All caught up",
-                        "Share a payment screenshot to Budget, scan a receipt, or turn on reading notifications in Settings. What's found shows up here to check before it's added."
+                        "Share a payment screenshot to Budget, scan a receipt, or turn on reading notifications in Settings. Everything is read on this phone, and shows up here to check before it's added."
                     )
                 }
             }

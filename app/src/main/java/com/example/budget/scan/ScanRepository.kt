@@ -1,10 +1,7 @@
 package com.example.budget.scan
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Base64
 import com.example.budget.data.local.dao.PendingDao
 import com.example.budget.data.local.entity.PendingEntity
 import com.example.budget.domain.budget.Bootstrap
@@ -35,7 +32,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.UUID
@@ -74,7 +70,7 @@ data class ScanStatus(val working: Int = 0, val lastMessage: String? = null)
 class ScanRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val pendingDao: PendingDao,
-    private val gemini: GeminiClient,
+    private val reader: TextReader,
     private val settings: SettingsRepository,
     private val assets: AssetRepository,
     private val funds: FundCategoryRepository,
@@ -94,38 +90,30 @@ class ScanRepository @Inject constructor(
 
     // ------------------------------------------------------------------ input
 
-    /** Screenshots or photos: read each one with Gemini in the background. */
+    /** Screenshots or photos: read on the phone, one by one, in the background. */
     fun scanImages(uris: List<Uri>, source: String) {
         if (uris.isEmpty()) return
         _status.update { it.copy(working = it.working + uris.size) }
         scope.launch {
-            // Read and shrink every image first, while the shared-file permission is still valid
-            val images = uris.mapNotNull { uri -> runCatching { loadJpegBase64(uri) }.getOrNull() }
-            val unreadable = uris.size - images.size
-            if (unreadable > 0) _status.update { it.copy(working = (it.working - unreadable).coerceAtLeast(0)) }
-            if (images.isEmpty()) {
-                _status.update { it.copy(lastMessage = "Couldn't open that image") }
-                return@launch
-            }
             var added = 0
-            var failure: String? = null
-            for (img in images) {
+            var unreadable = 0
+            for (uri in uris) {
                 try {
                     val ctx = context()
-                    val parsed = gemini.readImage(settings.geminiApiKey.value, img, ctx.categoryNames, ctx.accountNames)
+                    val rows = reader.readRows(uri)
+                    val parsed = PaymentParser.parseImage(rows, ctx.categoryNames)
                     added += addDrafts(parsed, source, if (source == "SHARE") "Shared screenshot" else "Scan", ctx)
-                } catch (e: GeminiException) {
-                    failure = e.userMessage
                 } catch (e: Exception) {
-                    failure = "Couldn't read an image: ${e.message}"
+                    unreadable++
                 } finally {
                     _status.update { it.copy(working = (it.working - 1).coerceAtLeast(0)) }
                 }
             }
             _status.update {
-                it.copy(lastMessage = failure ?: when (added) {
-                    0 -> "No payments found in ${if (images.size == 1) "that image" else "those images"}"
-                    1 -> "1 transaction ready to review"
+                it.copy(lastMessage = when {
+                    added == 0 && unreadable == uris.size -> "Couldn't open ${if (uris.size == 1) "that image" else "those images"}"
+                    added == 0 -> "No payment found. Try a sharper photo with the total in view."
+                    added == 1 -> "1 transaction ready to review"
                     else -> "$added transactions ready to review"
                 })
             }
@@ -134,12 +122,11 @@ class ScanRepository @Inject constructor(
 
     /** A notification from a watched app. Quietly ignored when it isn't a payment. */
     fun readNotification(appName: String, text: String, postedAt: Long) {
-        if (settings.geminiApiKey.value.isBlank()) return
         scope.launch {
             runCatching {
                 val ctx = context()
-                val parsed = gemini.readText(settings.geminiApiKey.value, appName, text, ctx.categoryNames, ctx.accountNames)
-                    .map { p -> if (p.date == null) p.copy(date = DAY.format(postedAt), time = TIME.format(postedAt)) else p }
+                val parsed = PaymentParser.parseMessage(text, appName, ctx.categoryNames)
+                    .map { p -> if (p.date == null) p.copy(date = day(postedAt), time = time(postedAt)) else p }
                 addDrafts(parsed, "NOTIFICATION", "$appName notification", ctx)
             }
         }
@@ -339,26 +326,6 @@ class ScanRepository @Inject constructor(
         }.getOrNull()?.takeIf { it <= System.currentTimeMillis() + 24 * 3600_000L }
     }
 
-    /** Downscales to at most 1600 px on the long side and re-encodes as JPEG to keep uploads small. */
-    private fun loadJpegBase64(uri: Uri): String {
-        val resolver = context.contentResolver
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)!!.use { BitmapFactory.decodeStream(it, null, bounds) }
-        var sample = 1
-        while (max(bounds.outWidth, bounds.outHeight) / sample > 2400) sample *= 2
-        val bitmap = resolver.openInputStream(uri)!!.use {
-            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
-        } ?: error("not an image")
-        val long = max(bitmap.width, bitmap.height)
-        val scaled = if (long > 1600) {
-            val f = 1600f / long
-            Bitmap.createScaledBitmap(bitmap, (bitmap.width * f).toInt(), (bitmap.height * f).toInt(), true)
-        } else bitmap
-        val out = ByteArrayOutputStream()
-        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
-        return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
-    }
-
     private fun DraftKind.txType() = when (this) {
         DraftKind.EXPENSE -> TransactionType.EXPENSE
         DraftKind.INCOME -> TransactionType.INCOME
@@ -366,8 +333,8 @@ class ScanRepository @Inject constructor(
     }
 
     companion object {
-        private val DAY = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        private val TIME = SimpleDateFormat("HH:mm", Locale.US)
+        private fun day(t: Long) = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(t)
+        private fun time(t: Long) = SimpleDateFormat("HH:mm", Locale.US).format(t)
 
         fun PendingEntity.toDraft() = Draft(
             id, createdAt, source, runCatching { DraftKind.valueOf(kind) }.getOrDefault(DraftKind.EXPENSE),

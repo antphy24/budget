@@ -108,6 +108,9 @@ dependencies {
     // Biometric
     implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
 
+    // On-device text recognition for receipts and screenshots (model bundled in the APK, works offline)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
     // Vico Charts (Compose)
     implementation("com.patrykandpatrick.vico:compose:1.14.0")
     implementation("com.patrykandpatrick.vico:compose-m3:1.14.0")

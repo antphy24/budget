@@ -35,6 +35,7 @@ import com.example.budget.scan.PaymentNotificationListener
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -240,7 +241,6 @@ fun SettingsScreen(
 private fun SmartCapture(state: SettingsState, viewModel: SettingsViewModel) {
     val c = Budget.colors
     val context = LocalContext.current
-    var keyText by remember(state.geminiKey) { mutableStateOf(state.geminiKey) }
     var listenerOn by remember { mutableStateOf(PaymentNotificationListener.isEnabled(context)) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
@@ -250,20 +250,11 @@ private fun SmartCapture(state: SettingsState, viewModel: SettingsViewModel) {
     }
 
     Group {
-        Column(Modifier.padding(16.dp)) {
-            Text("Gemini API key", style = MaterialTheme.typography.titleSmall, color = c.ink)
-            Spacer(Modifier.height(2.dp))
-            Text(
-                "Reads receipts, screenshots and payment notifications. Get a free key at aistudio.google.com → Get API key.",
-                style = MaterialTheme.typography.bodySmall, color = c.inkSoft
-            )
-            Spacer(Modifier.height(10.dp))
-            FieldWell(keyText, { keyText = it.trim() }, placeholder = "Paste your key")
-            if (keyText != state.geminiKey) {
-                Spacer(Modifier.height(10.dp))
-                SoftButton("Save key", onClick = { viewModel.saveGeminiKey(keyText) }, contentColor = c.onEmerald, background = c.emerald)
-            }
-        }
+        ListRow(
+            title = "Read on this phone",
+            subtitle = "Receipts, screenshots and notifications are read on your phone. Nothing is uploaded.",
+            leading = { Glyph(Icons.Outlined.Lock, tint = c.emerald, background = c.emeraldTint) }
+        )
         Hairline()
         ListRow(
             title = "Read payment notifications",
@@ -301,7 +292,7 @@ private fun SmartCapture(state: SettingsState, viewModel: SettingsViewModel) {
         }
     }
     Text(
-        "Only ticked apps are read, and only messages that mention an amount. What Gemini finds waits in To review until you add it.",
+        "Only ticked apps are read, and only messages that mention an amount. What's found waits in To review until you add it. When you correct a category or pocket there, Budget remembers it for that merchant.",
         style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
         modifier = Modifier.padding(horizontal = Gutter, vertical = 10.dp)
     )

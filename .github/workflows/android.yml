@@ -43,6 +43,16 @@ jobs:
           echo "key: $want"; echo "apk: $got"
           [ -n "$want" ] && [ "$want" = "$got" ] || { echo "::error::APK is not signed with your key"; exit 1; }
 
+      - name: Check no usage-statistics uploader is included
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/aapt2 dump xmltree --file AndroidManifest.xml app/build/outputs/apk/debug/app-debug.apk > manifest.txt
+          grep -E "TransportBackendDiscovery|backend:" -A2 manifest.txt || true
+          if grep -q "CctBackendFactory" manifest.txt; then echo "::error::ML Kit telemetry backend is still in the APK"; exit 1; fi
+
+      - name: Parser tests
+        run: ./gradlew testDebugUnitTest --tests "com.example.budget.scan.*" --stacktrace
+
       - uses: actions/upload-artifact@v4
         with:
           name: budget-debug-apk

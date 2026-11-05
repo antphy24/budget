@@ -77,12 +77,9 @@ class SettingsRepositoryImpl @Inject constructor(
 
     // --- Smart capture ---
 
-    private val _geminiKey = MutableStateFlow(prefs.getString("gemini_api_key", "") ?: "")
-    override val geminiApiKey: StateFlow<String> = _geminiKey.asStateFlow()
-
-    override suspend fun setGeminiApiKey(key: String) {
-        prefs.edit().putString("gemini_api_key", key.trim()).apply()
-        _geminiKey.value = key.trim()
+    init {
+        // Scanning is fully on-device now; forget any cloud API key saved by version 1.2
+        if (prefs.contains("gemini_api_key")) prefs.edit().remove("gemini_api_key").apply()
     }
 
     private val _watched = MutableStateFlow(prefs.getStringSet("watched_apps", emptySet())?.toSet() ?: emptySet())
