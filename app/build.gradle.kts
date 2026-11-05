@@ -33,11 +33,24 @@ android {
         }
     }
 
+    // One key for every build, local and CI, so each APK installs over the last one.
+    // Default: your ~/.android/debug.keystore. CI points BUDGET_KEYSTORE at the same key
+    // (from the DEBUG_KEYSTORE_B64 secret) because AGP otherwise makes a random key there.
+    signingConfigs {
+        create("shared") {
+            storeFile = file(System.getenv("BUDGET_KEYSTORE") ?: "${System.getProperty("user.home")}/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("shared")
+        }
         release {
-            // Signed with the same (debug) key as the installed app, so updates
-            // install over it without losing data. CI restores that key.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("shared")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
