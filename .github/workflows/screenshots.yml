@@ -1,0 +1,44 @@
+name: Screenshots
+
+# Renders every screen with Paparazzi and publishes the PNGs to the
+# "screenshots" branch, so the design can be reviewed without a phone.
+on:
+  push:
+    branches: ["**"]
+    paths: ["app/src/**", ".github/workflows/screenshots.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Record screenshots
+        run: |
+          chmod +x gradlew
+          ./gradlew recordPaparazziDebug --stacktrace
+      - name: Publish to screenshots branch
+        run: |
+          set -e
+          src=app/src/test/snapshots/images
+          ls -la $src
+          mkdir -p /tmp/shots && cp $src/*.png /tmp/shots/
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git fetch origin screenshots || true
+          git switch --orphan shots-tmp
+          git rm -rfq . || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp /tmp/shots/*.png .
+          echo "From ${GITHUB_REF_NAME} @ ${GITHUB_SHA}" > SOURCE.txt
+          git add -A
+          git commit -qm "Screenshots for ${GITHUB_SHA::7}"
+          git push -f origin shots-tmp:screenshots

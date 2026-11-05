@@ -290,7 +290,7 @@ private fun PocketPickerRow(label: String, funds: List<FundCategory>, selectedId
                     Text(funds.firstOrNull { it.id == selectedId }?.name ?: "Choose", style = MaterialTheme.typography.bodyLarge, color = c.inkSoft)
                     Icon(Icons.Outlined.ExpandMore, null, tint = c.inkSoft, modifier = Modifier.size(20.dp))
                 }
-                DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = c.surface) {
+                DropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.background(c.surface)) {
                     funds.forEach { f ->
                         DropdownMenuItem(text = { Text(f.name) }, onClick = { onSelect(f.id); open = false })
                     }

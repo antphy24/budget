@@ -1,0 +1,59 @@
+name: Release
+
+# Push a tag like v1.2.0+5 to publish a release. Phones with the app see
+# "Version 1.2.0 is ready" and update in the app. Notes come from RELEASE_NOTES.md.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore signing key
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$DEBUG_KEYSTORE_B64" ]; then
+            echo "::error::DEBUG_KEYSTORE_B64 secret missing — the APK would not install over the app"; exit 1
+          fi
+          mkdir -p ~/.android
+          echo "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+
+      - name: Read version from tag
+        id: v
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v([0-9]+(\.[0-9]+)*)\+([0-9]+)$ ]]; then
+            echo "::error::Tag must look like v1.2.0+5"; exit 1
+          fi
+          echo "name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          echo "code=${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PversionName=${{ steps.v.outputs.name }} -PversionCode=${{ steps.v.outputs.code }} --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk budget.apk
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="RELEASE_NOTES.md"
+          [ -f "$notes" ] || echo "Improvements and fixes." > "$notes"
+          gh release create "$GITHUB_REF_NAME" budget.apk \
+            --title "Budget ${{ steps.v.outputs.name }}" \
+            --notes-file "$notes"
