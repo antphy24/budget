@@ -124,7 +124,8 @@ fun ListRow(
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        // Rows with extra content below line the icon up with the title
+        verticalAlignment = if (bottom != null) Alignment.Top else Alignment.CenterVertically
     ) {
         if (leading != null) {
             leading()
