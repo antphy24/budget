@@ -1,0 +1,23 @@
+# Build output & caches
+build/
+app/build/
+.gradle/
+gradle-temp/
+.kotlin/
+*.apk
+*.aab
+build_log.txt
+
+# Local machine files
+local.properties
+.idea/
+*.iml
+.DS_Store
+
+# Signing keys — never commit
+*.keystore
+*.jks
+
+# Downloaded Gradle archive & old backups
+gradle.zip
+backup_before_pockets/
