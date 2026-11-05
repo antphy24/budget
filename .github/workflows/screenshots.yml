@@ -5,7 +5,7 @@ name: Screenshots
 on:
   push:
     branches: ["**"]
-    paths: ["app/src/**", ".github/workflows/screenshots.yml"]
+    paths: ["app/**", "*.gradle.kts", ".github/workflows/screenshots.yml"]
   workflow_dispatch:
 
 permissions:
