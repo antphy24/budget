@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Three pockets as pace rails: track, fill, and the "today" tick. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- tracks -->
+    <path android:fillColor="#33FFFFFF" android:pathData="M35,38h38a4,4 0 0 1 0,8h-38a4,4 0 0 1 0,-8z"/>
+    <path android:fillColor="#33FFFFFF" android:pathData="M35,50h38a4,4 0 0 1 0,8h-38a4,4 0 0 1 0,-8z"/>
+    <path android:fillColor="#33FFFFFF" android:pathData="M35,62h38a4,4 0 0 1 0,8h-38a4,4 0 0 1 0,-8z"/>
+    <!-- fills -->
+    <path android:fillColor="#FFFFFF" android:pathData="M35,38h30a4,4 0 0 1 0,8h-30a4,4 0 0 1 0,-8z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M35,50h20a4,4 0 0 1 0,8h-20a4,4 0 0 1 0,-8z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M35,62h11a4,4 0 0 1 0,8h-11a4,4 0 0 1 0,-8z"/>
+    <!-- today tick -->
+    <path android:fillColor="#8FE0C2" android:pathData="M57.5,33h3v42h-3z"/>
+</vector>

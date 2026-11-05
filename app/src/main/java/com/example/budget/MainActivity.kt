@@ -1,21 +1,28 @@
 package com.example.budget
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
-import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.fragment.app.FragmentActivity
 import com.example.budget.presentation.navigation.BudgetNavGraph
+import com.example.budget.ui.components.PrimaryButton
+import com.example.budget.ui.theme.Budget
 import com.example.budget.ui.theme.BudgetTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -23,34 +30,23 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             BudgetTheme {
-                var isAuthenticated by remember { mutableStateOf(false) }
-                var showBiometricPrompt by remember { mutableStateOf(true) }
+                var unlocked by rememberSaveable { mutableStateOf(false) }
+                var prompting by remember { mutableStateOf(true) }
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    if (isAuthenticated) {
-                        BudgetNavGraph()
-                    } else {
-                        LockScreen(
-                            onUnlockClick = { showBiometricPrompt = true }
-                        )
-                    }
+                if (unlocked) {
+                    BudgetNavGraph()
+                } else {
+                    LockScreen(onUnlock = { prompting = true })
                 }
 
-                if (showBiometricPrompt) {
+                if (prompting && !unlocked) {
                     LaunchedEffect(Unit) {
-                        showBiometricPrompt(
-                            onSuccess = {
-                                isAuthenticated = true
-                                showBiometricPrompt = false
-                            },
-                            onFail = {
-                                showBiometricPrompt = false
-                            }
+                        authenticate(
+                            onSuccess = { unlocked = true; prompting = false },
+                            onFail = { prompting = false }
                         )
                     }
                 }
@@ -58,71 +54,58 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    private fun showBiometricPrompt(onSuccess: () -> Unit, onFail: () -> Unit) {
-        val executor = ContextCompat.getMainExecutor(this)
-        val biometricPrompt = BiometricPrompt(this, executor,
+    private fun authenticate(onSuccess: () -> Unit, onFail: () -> Unit) {
+        val prompt = BiometricPrompt(this, ContextCompat.getMainExecutor(this),
             object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    super.onAuthenticationError(errorCode, errString)
-                    onFail()
-                }
-
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    super.onAuthenticationSucceeded(result)
-                    onSuccess()
-                }
-
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-                    onFail()
-                }
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = onFail()
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
             })
-
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock Budget App")
-            .setSubtitle("Authenticate to access your financial data")
-            .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+        val info = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock Budget")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
             .build()
-
-        biometricPrompt.authenticate(promptInfo)
+        prompt.authenticate(info)
     }
 }
 
 @Composable
-fun LockScreen(onUnlockClick: () -> Unit) {
+fun LockScreen(onUnlock: () -> Unit) {
+    val c = Budget.colors
     Column(
-        modifier = Modifier
+        Modifier
             .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(c.hero)
+            .systemBarsPadding()
+            .padding(horizontal = 28.dp, vertical = 24.dp)
     ) {
-        Icon(
-            painter = painterResource(id = android.R.drawable.ic_secure),
-            contentDescription = "Locked",
-            modifier = Modifier.size(100.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "App Locked",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Please authenticate to view your budget.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(48.dp))
-        Button(
-            onClick = onUnlockClick,
-            modifier = Modifier.fillMaxWidth().height(56.dp)
-        ) {
-            Text("Unlock Now", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.weight(1f))
+        AppMark(Modifier.size(64.dp))
+        Spacer(Modifier.height(28.dp))
+        Text("Budget", style = MaterialTheme.typography.headlineLarge, color = c.onHero)
+        Spacer(Modifier.height(6.dp))
+        Text("Locked to keep your money private.", style = MaterialTheme.typography.bodyLarge, color = c.onHeroSoft)
+        Spacer(Modifier.weight(1.4f))
+        PrimaryButton("Unlock", onClick = onUnlock, color = c.onHero, contentColor = c.hero)
+    }
+}
+
+/** The launcher mark drawn in Compose: three pace rails and the "today" tick. */
+@Composable
+fun AppMark(modifier: Modifier = Modifier) {
+    val mint = Color(0xFF8FE0C2)
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val bar = h * 0.14f
+        val gap = h * 0.13f
+        val top = (h - 3 * bar - 2 * gap) / 2
+        val fills = listOf(0.82f, 0.56f, 0.32f)
+        fills.forEachIndexed { i, f ->
+            val y = top + i * (bar + gap)
+            drawRoundRect(Color.White.copy(alpha = 0.2f), Offset(0f, y), Size(w, bar), CornerRadius(bar / 2))
+            drawRoundRect(Color.White, Offset(0f, y), Size(w * f, bar), CornerRadius(bar / 2))
         }
+        val x = w * 0.62f
+        drawRect(mint, Offset(x, top - gap * 0.6f), Size(w * 0.06f, 3 * bar + 2 * gap + gap * 1.2f))
     }
 }

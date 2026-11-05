@@ -17,8 +17,9 @@ android {
         applicationId = "com.example.budget"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // Set by the release workflow from the tag (v1.2.0+5 → name 1.2.0, code 5)
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -28,6 +29,9 @@ android {
 
     buildTypes {
         release {
+            // Signed with the same (debug) key as the installed app, so updates
+            // install over it without losing data. CI restores that key.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
