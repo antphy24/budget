@@ -173,13 +173,15 @@ fun FieldWell(
     prefix: String? = null,
     suffix: String? = null,
     keyboardType: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None
 ) {
     val c = Budget.colors
     androidx.compose.foundation.text.BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = singleLine,
+        visualTransformation = visualTransformation,
         textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.ink),
         cursorBrush = androidx.compose.ui.graphics.SolidColor(c.emerald),
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -245,4 +247,26 @@ fun ChipRow(label: String, modifier: Modifier = Modifier, content: @Composable R
             content = content
         )
     }
+}
+
+/**
+ * Rupiah amount input. Holds digits only ("1250000") and shows dots ("1.250.000") on screen,
+ * so typing, deleting and moving the cursor behave normally.
+ */
+@Composable
+fun MoneyField(
+    digits: String,
+    onDigits: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "0"
+) {
+    FieldWell(
+        value = digits,
+        onValueChange = { v -> onDigits(v.filter { it.isDigit() }.trimStart('0').take(13)) },
+        modifier = modifier,
+        placeholder = placeholder,
+        prefix = "Rp",
+        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+        visualTransformation = RupiahGrouping
+    )
 }

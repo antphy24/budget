@@ -270,10 +270,9 @@ private fun DraftSheet(
                 )
                 Spacer(Modifier.height(14.dp))
                 FieldLabel("Amount")
-                FieldWell(
-                    value = if (draft.amount > 0) groupRupiah(draft.amount) else "",
-                    onValueChange = { v -> onChange { d -> d.copy(amount = v.filter { ch -> ch.isDigit() }.toDoubleOrNull() ?: 0.0) } },
-                    prefix = "Rp", keyboardType = KeyboardType.Number, placeholder = "0"
+                MoneyField(
+                    digits = if (draft.amount >= 1) draft.amount.toLong().toString() else "",
+                    onDigits = { v -> onChange { d -> d.copy(amount = v.toDoubleOrNull() ?: 0.0) } }
                 )
                 Spacer(Modifier.height(14.dp))
                 FieldLabel(if (draft.kind == DraftKind.INCOME) "From" else "Name")

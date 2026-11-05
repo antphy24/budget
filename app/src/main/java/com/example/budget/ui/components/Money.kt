@@ -104,3 +104,48 @@ fun MoneyText(
         softWrap = false
     )
 }
+
+/**
+ * Thousands dots for a digit string, with a cursor map in both directions.
+ * "1250000" → "1.250.000". Used to show dots while the field itself only stores digits,
+ * so the cursor stays where you type.
+ */
+class DigitGrouping(digits: String) {
+    val text: String
+    /** cursor position in digits → position in [text] */
+    val toShown: IntArray
+    /** cursor position in [text] → position in digits */
+    val toDigits: IntArray
+
+    init {
+        val n = digits.length
+        val out = StringBuilder()
+        val o2t = IntArray(n + 1)
+        val t2o = ArrayList<Int>(n + n / 3 + 1)
+        for (i in 0 until n) {
+            if (i > 0 && (n - i) % 3 == 0) { t2o.add(i); out.append('.') }
+            o2t[i] = out.length
+            t2o.add(i)
+            out.append(digits[i])
+        }
+        o2t[n] = out.length
+        t2o.add(n)
+        text = out.toString()
+        toShown = o2t
+        toDigits = t2o.toIntArray()
+    }
+}
+
+/** Shows "1.250.000" for a field whose value is "1250000". */
+object RupiahGrouping : androidx.compose.ui.text.input.VisualTransformation {
+    override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+        val g = DigitGrouping(text.text)
+        return androidx.compose.ui.text.input.TransformedText(
+            androidx.compose.ui.text.AnnotatedString(g.text),
+            object : androidx.compose.ui.text.input.OffsetMapping {
+                override fun originalToTransformed(offset: Int) = g.toShown[offset.coerceIn(0, g.toShown.size - 1)]
+                override fun transformedToOriginal(offset: Int) = g.toDigits[offset.coerceIn(0, g.toDigits.size - 1)]
+            }
+        )
+    }
+}

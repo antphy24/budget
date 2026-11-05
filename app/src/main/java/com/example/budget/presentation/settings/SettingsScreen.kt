@@ -197,12 +197,9 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(18.dp))
                 FieldLabel(if (e.id == null) "Balance today" else "Current balance")
-                FieldWell(
-                    value = e.balanceText.filter { it.isDigit() }.let { if (it.isEmpty()) "" else groupRupiah(it.toDouble()) },
-                    onValueChange = { v -> viewModel.updateAccount { it.copy(balanceText = v.filter { ch -> ch.isDigit() }) } },
-                    prefix = "Rp",
-                    placeholder = "0",
-                    keyboardType = KeyboardType.Number
+                MoneyField(
+                    digits = e.balanceText.filter { it.isDigit() }.trimStart('0'),
+                    onDigits = { v -> viewModel.updateAccount { it.copy(balanceText = v) } }
                 )
                 Text(
                     if (e.id == null && e.type == AssetType.LIQUID) "This goes to To distribute, ready to split into your pockets."

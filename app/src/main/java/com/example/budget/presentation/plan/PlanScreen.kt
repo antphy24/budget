@@ -345,14 +345,21 @@ private fun PocketSheet(
                 )
                 if (editor.kind != null) {
                     Spacer(Modifier.height(10.dp))
-                    FieldWell(
-                        value = editor.amountText,
-                        onValueChange = { v -> onChange { it.copy(amountText = v.filter { ch -> ch.isDigit() || ch == ',' || ch == '.' }) } },
-                        prefix = if (editor.kind == RuleKind.FIXED) "Rp" else null,
-                        suffix = if (editor.kind == RuleKind.PERCENT) "%" else null,
-                        placeholder = if (editor.kind == RuleKind.FIXED) "600000" else "20",
-                        keyboardType = KeyboardType.Number
-                    )
+                    if (editor.kind == RuleKind.FIXED) {
+                        MoneyField(
+                            digits = editor.amountText.filter { it.isDigit() }.trimStart('0'),
+                            onDigits = { v -> onChange { it.copy(amountText = v) } },
+                            placeholder = "600.000"
+                        )
+                    } else {
+                        FieldWell(
+                            value = editor.amountText,
+                            onValueChange = { v -> onChange { it.copy(amountText = v.filter { ch -> ch.isDigit() || ch == ',' || ch == '.' }) } },
+                            suffix = "%",
+                            placeholder = "20",
+                            keyboardType = KeyboardType.Decimal
+                        )
+                    }
                     Text(
                         if (editor.kind == RuleKind.FIXED) "Filled up to this amount each cycle, first, before percentages."
                         else "Takes this share of what's left after fixed amounts.",

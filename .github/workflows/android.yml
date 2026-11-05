@@ -54,7 +54,7 @@ jobs:
           if grep -q "CctBackendFactory" manifest.txt; then echo "::error::ML Kit telemetry backend is still in the APK"; exit 1; fi
 
       - name: Parser tests
-        run: ./gradlew testDebugUnitTest --tests "com.example.budget.scan.*" --stacktrace
+        run: ./gradlew testDebugUnitTest --tests "com.example.budget.scan.*" --tests "com.example.budget.ui.*" --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
