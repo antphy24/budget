@@ -28,6 +28,9 @@ android {
         versionName = ((project.findProperty("versionName") ?: versionProps["versionName"]) as String?) ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Real phones are ARM; leaving out emulator (x86) libraries keeps the text reader's APK small
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         vectorDrawables {
             useSupportLibrary = true
         }
