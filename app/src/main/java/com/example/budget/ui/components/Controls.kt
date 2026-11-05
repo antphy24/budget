@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,7 +67,8 @@ fun SoftButton(
             .background(background)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
         if (icon != null) {
             Icon(icon, null, tint = contentColor, modifier = Modifier.size(18.dp))
@@ -223,4 +225,24 @@ fun FieldLabel(text: String, modifier: Modifier = Modifier) {
         color = Budget.colors.inkSoft,
         modifier = modifier.padding(bottom = 8.dp)
     )
+}
+
+/** A labelled, horizontally scrolling row of chips. */
+@Composable
+fun ChipRow(label: String, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Column(modifier.padding(bottom = 14.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = Budget.colors.inkSoft,
+            modifier = Modifier.padding(horizontal = Gutter, vertical = 6.dp)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = Gutter),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            content = content
+        )
+    }
 }

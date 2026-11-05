@@ -1,5 +1,8 @@
 package com.example.budget
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.biometric.BiometricManager
@@ -25,20 +28,53 @@ import com.example.budget.presentation.navigation.BudgetNavGraph
 import com.example.budget.ui.components.PrimaryButton
 import com.example.budget.ui.theme.Budget
 import com.example.budget.ui.theme.BudgetTheme
+import com.example.budget.scan.ScanRepository
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    @Inject lateinit var scan: ScanRepository
+
+    /** Set when screenshots were shared to the app; opens the review inbox after unlocking */
+    private val openInbox = mutableStateOf(false)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleShare(intent)
+    }
+
+    private fun handleShare(intent: Intent?) {
+        intent ?: return
+        val uris: List<Uri> = when (intent.action) {
+            Intent.ACTION_SEND -> listOfNotNull(
+                if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                else @Suppress("DEPRECATION") intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            )
+            Intent.ACTION_SEND_MULTIPLE ->
+                (if (Build.VERSION.SDK_INT >= 33) intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                else @Suppress("DEPRECATION") intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)) ?: emptyList()
+            else -> emptyList()
+        }
+        if (uris.isNotEmpty()) {
+            scan.scanImages(uris, "SHARE")
+            openInbox.value = true
+            intent.action = null // don't re-scan after rotation
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (savedInstanceState == null) handleShare(intent)
         setContent {
             BudgetTheme {
                 var unlocked by rememberSaveable { mutableStateOf(false) }
                 var prompting by remember { mutableStateOf(true) }
 
                 if (unlocked) {
-                    BudgetNavGraph()
+                    BudgetNavGraph(openInbox = openInbox.value, onInboxOpened = { openInbox.value = false })
                 } else {
                     LockScreen(onUnlock = { prompting = true })
                 }

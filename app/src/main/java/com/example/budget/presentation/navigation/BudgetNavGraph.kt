@@ -42,6 +42,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.budget.presentation.activity.ActivityScreen
 import com.example.budget.presentation.home.HomeScreen
+import com.example.budget.presentation.inbox.InboxScreen
 import com.example.budget.presentation.insights.InsightsScreen
 import com.example.budget.presentation.plan.PlanScreen
 import com.example.budget.presentation.settings.SettingsScreen
@@ -52,6 +53,7 @@ import com.example.budget.update.UpdateHost
 sealed class Screen(val route: String) {
     object Main : Screen("main")
     object TransactionEntry : Screen("entry")
+    object Inbox : Screen("inbox")
     object Settings : Screen("settings?newAccount={newAccount}") {
         fun go(newAccount: Boolean = false) = "settings?newAccount=$newAccount"
     }
@@ -67,7 +69,18 @@ enum class Tab(val label: String, val icon: ImageVector, val selectedIcon: Image
 private const val SLIDE_MS = 280
 
 @Composable
-fun BudgetNavGraph(navController: NavHostController = rememberNavController()) {
+fun BudgetNavGraph(
+    navController: NavHostController = rememberNavController(),
+    openInbox: Boolean = false,
+    onInboxOpened: () -> Unit = {}
+) {
+    // Screenshots shared to the app: show what was read
+    LaunchedEffect(openInbox) {
+        if (openInbox) {
+            navController.navigate(Screen.Inbox.route) { launchSingleTop = true }
+            onInboxOpened()
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = Screen.Main.route,
@@ -79,7 +92,14 @@ fun BudgetNavGraph(navController: NavHostController = rememberNavController()) {
         composable(Screen.Main.route) {
             MainTabs(
                 onAdd = { navController.navigate(Screen.TransactionEntry.route) },
-                onSettings = { newAccount -> navController.navigate(Screen.Settings.go(newAccount)) }
+                onSettings = { newAccount -> navController.navigate(Screen.Settings.go(newAccount)) },
+                onInbox = { navController.navigate(Screen.Inbox.route) { launchSingleTop = true } }
+            )
+        }
+        composable(Screen.Inbox.route) {
+            InboxScreen(
+                onBack = { navController.popBackStack() },
+                onOpenSettings = { navController.navigate(Screen.Settings.go(false)) }
             )
         }
         composable(
@@ -103,7 +123,7 @@ fun BudgetNavGraph(navController: NavHostController = rememberNavController()) {
 }
 
 @Composable
-private fun MainTabs(onAdd: () -> Unit, onSettings: (Boolean) -> Unit) {
+private fun MainTabs(onAdd: () -> Unit, onSettings: (Boolean) -> Unit, onInbox: () -> Unit) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
 
     // Ask once for notification permission (Android 13+) so pocket alerts can show
@@ -122,7 +142,8 @@ private fun MainTabs(onAdd: () -> Unit, onSettings: (Boolean) -> Unit) {
                     onOpenSettings = { onSettings(false) },
                     onAddAccount = { onSettings(true) },
                     onOpenPlan = { tab = Tab.Plan },
-                    onSeeAll = { tab = Tab.Activity }
+                    onSeeAll = { tab = Tab.Activity },
+                    onInbox = onInbox
                 )
                 Tab.Activity -> ActivityScreen()
                 Tab.Insights -> InsightsScreen()

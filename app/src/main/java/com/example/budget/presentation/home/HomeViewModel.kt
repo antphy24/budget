@@ -17,6 +17,8 @@ import com.example.budget.domain.repository.SettingsRepository
 import com.example.budget.domain.repository.TransactionRepository
 import com.example.budget.presentation.common.TxPresenter
 import com.example.budget.presentation.common.TxRow
+import com.example.budget.scan.ScanRepository
+import kotlinx.coroutines.flow.update
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +46,10 @@ data class HomeState(
     val recent: List<TxRow> = emptyList(),
     val assets: Map<String, Asset> = emptyMap(),
     val funds: Map<String, FundCategory> = emptyMap(),
-    val hasAccounts: Boolean = true
+    val hasAccounts: Boolean = true,
+    /** Drafts waiting in the review inbox, and images still being read */
+    val toReview: Int = 0,
+    val reading: Int = 0
 )
 
 private data class PocketSettings(val holding: String?, val savings: String?, val payday: Int, val lastSweep: Long)
@@ -55,6 +60,7 @@ class HomeViewModel @Inject constructor(
     private val assets: AssetRepository,
     private val transactions: TransactionRepository,
     private val settings: SettingsRepository,
+    scan: ScanRepository,
     bootstrap: Bootstrap
 ) : ViewModel() {
 
@@ -76,7 +82,11 @@ class HomeViewModel @Inject constructor(
                 settings.isBalanceHidden
             ) { fundList, assetList, txs, s, hidden ->
                 build(fundList, assetList, txs, s, hidden)
-            }.collect { _state.value = it }
+            }.collect { s -> _state.update { s.copy(toReview = it.toReview, reading = it.reading) } }
+        }
+        viewModelScope.launch {
+            combine(scan.drafts, scan.status) { d, st -> d.size to st.working }
+                .collect { (n, w) -> _state.update { it.copy(toReview = n, reading = w) } }
         }
     }
 

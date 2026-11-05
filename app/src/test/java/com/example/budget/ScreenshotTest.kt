@@ -17,6 +17,12 @@ import com.example.budget.presentation.activity.ActivityFilter
 import com.example.budget.presentation.activity.ActivityState
 import com.example.budget.presentation.common.TxPresenter
 import com.example.budget.presentation.home.HomeActions
+import com.example.budget.presentation.inbox.InboxContent
+import com.example.budget.presentation.inbox.InboxState
+import com.example.budget.scan.Draft
+import com.example.budget.scan.DraftItem
+import com.example.budget.scan.DraftKind
+import com.example.budget.scan.ScanStatus
 import com.example.budget.presentation.home.HomeContent
 import com.example.budget.presentation.home.HomeState
 import com.example.budget.presentation.home.PocketView
@@ -163,4 +169,27 @@ class ScreenshotTest {
         expenseCategory = "Food & drinks", assets = assets, funds = funds, holdingFundId = "f0",
         expenseCategories = listOf("Food & drinks", "Groceries", "Transport", "Bills", "Shopping", "Health").mapIndexed { i, n -> ExpenseCategory("c$i", n) }
     )
+
+    private fun inbox() = InboxState(
+        drafts = listOf(
+            Draft("d1", now, "NOTIFICATION", DraftKind.EXPENSE, 25_000.0, now - 600_000, "Warung Bu Sri", "Food & drinks",
+                "a2", null, "f1", "QR123", emptyList(), false, 0.95, "DANA notification"),
+            Draft("d2", now, "SCAN", DraftKind.EXPENSE, 87_400.0, now - 3_600_000, "Indomaret", "Groceries",
+                "a3", null, null, null,
+                listOf(DraftItem("Beras 5kg", 68_000.0, "Groceries", null), DraftItem("Sabun", 9_900.0, "Groceries", null), DraftItem("Chitato", 9_500.0, "Food & drinks", "f3")),
+                false, 0.9, "Scan"),
+            Draft("d3", now, "SHARE", DraftKind.TRANSFER, 500_000.0, now - 7_200_000, "ATM withdrawal", "Uncategorized",
+                "a1", "a3", null, null, emptyList(), false, 0.8, "Shared screenshot")
+        ),
+        problems = mapOf("d2" to "Choose a pocket"),
+        assets = assets, funds = funds, holdingFundId = "f0",
+        status = ScanStatus(working = 1)
+    )
+
+    @Test fun inbox_light() = shot(false) { InboxContent(inbox(), {}, {}, {}, {}, {}, {}, {}) }
+    @Test fun inbox_dark() = shot(true) { InboxContent(inbox(), {}, {}, {}, {}, {}, {}, {}) }
+
+    @Test fun home_review() = shot(false) {
+        HomeContent(homeState().copy(toReview = 3), HomeActions())
+    }
 }

@@ -44,7 +44,10 @@ data class SettingsState(
     val accountEditor: AccountEditor? = null,
     val categoryEditor: CategoryEditor? = null,
     val message: String? = null,
-    val version: AppVersion = AppVersion("", 0)
+    val version: AppVersion = AppVersion("", 0),
+    val geminiKey: String = "",
+    val watchedApps: Set<String> = emptySet(),
+    val paymentApps: Map<String, String> = emptyMap()
 )
 
 @HiltViewModel
@@ -61,6 +64,10 @@ class SettingsViewModel @Inject constructor(
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            combine(settings.geminiApiKey, settings.watchedApps, settings.seenPaymentApps) { k, w, seen -> Triple(k, w, seen) }
+                .collect { (k, w, seen) -> _state.update { it.copy(geminiKey = k, watchedApps = w, paymentApps = seen) } }
+        }
         viewModelScope.launch { bootstrap.ensure() }
         viewModelScope.launch {
             combine(assetRepo.getAllAssets(), categoryRepo.getAllExpenseCategories(), settings.isBalanceHidden) { a, c, h ->
@@ -175,6 +182,17 @@ class SettingsViewModel @Inject constructor(
             categoryRepo.deleteExpenseCategory(c)
             _state.update { it.copy(categoryEditor = null, message = "Deleted ${c.name}. Past spending keeps its label.") }
         }
+    }
+
+    fun saveGeminiKey(key: String) {
+        viewModelScope.launch {
+            settings.setGeminiApiKey(key)
+            toast(if (key.isBlank()) "Gemini key removed" else "Gemini key saved")
+        }
+    }
+
+    fun setAppWatched(pkg: String, watched: Boolean) {
+        viewModelScope.launch { settings.setAppWatched(pkg, watched) }
     }
 
     fun toggleHidden() { viewModelScope.launch { settings.setBalanceHidden(!_state.value.hidden) } }

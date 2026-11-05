@@ -3,4 +3,6 @@
      (update/UpdateManager.kt downloads into cache/updates/). -->
 <paths>
     <cache-path name="updates" path="updates/" />
+    <!-- Photos taken with "Scan receipt" -->
+    <cache-path name="scans" path="scans/" />
 </paths>

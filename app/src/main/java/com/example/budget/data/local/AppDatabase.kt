@@ -13,6 +13,8 @@ import com.example.budget.data.local.entity.ExpenseCategoryEntity
 import com.example.budget.data.local.dao.ExpenseCategoryDao
 import com.example.budget.data.local.dao.AllocationRuleDao
 import com.example.budget.data.local.entity.AllocationRuleEntity
+import com.example.budget.data.local.entity.PendingEntity
+import com.example.budget.data.local.dao.PendingDao
 
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
@@ -23,9 +25,10 @@ import androidx.room.migration.Migration
         FundCategoryEntity::class,
         TransactionEntity::class,
         ExpenseCategoryEntity::class,
-        AllocationRuleEntity::class
+        AllocationRuleEntity::class,
+        PendingEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -35,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val transactionDao: TransactionDao
     abstract val expenseCategoryDao: ExpenseCategoryDao
     abstract val allocationRuleDao: AllocationRuleDao
+    abstract val pendingDao: PendingDao
     
     companion object {
         const val DATABASE_NAME = "budget_db"
@@ -234,6 +238,32 @@ abstract class AppDatabase : RoomDatabase() {
                         kind TEXT NOT NULL,
                         amount REAL NOT NULL,
                         sort_order INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
+        /** Adds the review inbox for scanned transactions. Existing data is untouched. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS pending_transactions (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        created_at INTEGER NOT NULL,
+                        source TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        amount REAL NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        merchant TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        asset_id TEXT,
+                        asset2_id TEXT,
+                        fund_id TEXT,
+                        reference TEXT,
+                        items_json TEXT NOT NULL,
+                        split_items INTEGER NOT NULL,
+                        confidence REAL NOT NULL,
+                        origin TEXT NOT NULL
                     )
                 """)
             }

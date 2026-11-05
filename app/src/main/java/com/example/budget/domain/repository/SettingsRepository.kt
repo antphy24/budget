@@ -28,4 +28,18 @@ interface SettingsRepository {
     /** Highest alert severity already notified for a pocket in a cycle (avoids repeat notifications). */
     fun getNotifiedSeverity(fundId: String, cycleStart: Long): Int
     fun setNotifiedSeverity(fundId: String, cycleStart: Long, severity: Int)
+
+    // --- Smart capture ---
+
+    /** Gemini API key from aistudio.google.com (blank = scanning off) */
+    val geminiApiKey: StateFlow<String>
+    suspend fun setGeminiApiKey(key: String)
+
+    /** Package names whose payment notifications are read */
+    val watchedApps: StateFlow<Set<String>>
+    suspend fun setAppWatched(packageName: String, watched: Boolean)
+
+    /** Apps that posted a notification mentioning rupiah: package → app name */
+    val seenPaymentApps: StateFlow<Map<String, String>>
+    fun rememberPaymentApp(packageName: String, label: String)
 }

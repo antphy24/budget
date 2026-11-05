@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Visibility
@@ -40,7 +41,8 @@ data class HomeActions(
     val onDistribute: () -> Unit = {},
     val onOpenPlan: () -> Unit = {},
     val onSeeAll: () -> Unit = {},
-    val onTxClick: (TxRow) -> Unit = {}
+    val onTxClick: (TxRow) -> Unit = {},
+    val onInbox: () -> Unit = {}
 )
 
 @Composable
@@ -49,6 +51,7 @@ fun HomeScreen(
     onAddAccount: () -> Unit,
     onOpenPlan: () -> Unit,
     onSeeAll: () -> Unit,
+    onInbox: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -63,7 +66,8 @@ fun HomeScreen(
             onDistribute = onOpenPlan,
             onOpenPlan = onOpenPlan,
             onSeeAll = onSeeAll,
-            onTxClick = { selected = it }
+            onTxClick = { selected = it },
+            onInbox = onInbox
         )
     )
 
@@ -101,6 +105,25 @@ fun HomeContent(state: HomeState, actions: HomeActions) {
                         leading = { Glyph(Icons.Outlined.AccountBalanceWallet, tint = c.emerald, background = c.emeraldTint) },
                         trailing = { SoftButton("Add", onClick = actions.onAddAccount) },
                         onClick = actions.onAddAccount
+                    )
+                }
+            }
+        }
+
+        if (state.toReview > 0 || state.reading > 0) {
+            item {
+                Spacer(Modifier.height(12.dp))
+                Group {
+                    ListRow(
+                        title = when {
+                            state.toReview == 0 -> "Reading your receipt…"
+                            state.toReview == 1 -> "1 transaction to review"
+                            else -> "${state.toReview} transactions to review"
+                        },
+                        subtitle = "Found in your scans and notifications",
+                        leading = { Glyph(Icons.Outlined.DocumentScanner, tint = c.amber, background = c.amberTint) },
+                        trailing = { SoftButton("Review", onClick = actions.onInbox) },
+                        onClick = actions.onInbox
                     )
                 }
             }
@@ -183,6 +206,9 @@ private fun TopRow(hidden: Boolean, actions: HomeActions) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(today, style = MaterialTheme.typography.titleSmall, color = Budget.colors.inkSoft, modifier = Modifier.weight(1f))
+        IconButton(onClick = actions.onInbox) {
+            Icon(Icons.Outlined.DocumentScanner, contentDescription = "Scan receipts", tint = Budget.colors.ink)
+        }
         IconButton(onClick = actions.onToggleHidden) {
             Icon(
                 if (hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,

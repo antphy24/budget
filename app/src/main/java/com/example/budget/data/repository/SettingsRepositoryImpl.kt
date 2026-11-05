@@ -75,6 +75,40 @@ class SettingsRepositoryImpl @Inject constructor(
 
     private fun alertKey(fundId: String, cycleStart: Long) = "alert_${fundId}_$cycleStart"
 
+    // --- Smart capture ---
+
+    private val _geminiKey = MutableStateFlow(prefs.getString("gemini_api_key", "") ?: "")
+    override val geminiApiKey: StateFlow<String> = _geminiKey.asStateFlow()
+
+    override suspend fun setGeminiApiKey(key: String) {
+        prefs.edit().putString("gemini_api_key", key.trim()).apply()
+        _geminiKey.value = key.trim()
+    }
+
+    private val _watched = MutableStateFlow(prefs.getStringSet("watched_apps", emptySet())?.toSet() ?: emptySet())
+    override val watchedApps: StateFlow<Set<String>> = _watched.asStateFlow()
+
+    override suspend fun setAppWatched(packageName: String, watched: Boolean) {
+        val next = if (watched) _watched.value + packageName else _watched.value - packageName
+        prefs.edit().putStringSet("watched_apps", next).apply()
+        _watched.value = next
+    }
+
+    private val _seen = MutableStateFlow(
+        (prefs.getStringSet("seen_payment_apps", emptySet()) ?: emptySet())
+            .mapNotNull { it.split('|', limit = 2).takeIf { p -> p.size == 2 }?.let { p -> p[0] to p[1] } }
+            .toMap()
+    )
+    override val seenPaymentApps: StateFlow<Map<String, String>> = _seen.asStateFlow()
+
+    @Synchronized
+    override fun rememberPaymentApp(packageName: String, label: String) {
+        if (_seen.value[packageName] == label) return
+        val next = _seen.value + (packageName to label)
+        prefs.edit().putStringSet("seen_payment_apps", next.map { (k, v) -> "$k|$v" }.toSet()).apply()
+        _seen.value = next
+    }
+
     private companion object {
         const val KEY_PAYDAY = "payday"
         const val KEY_HOLDING = "holding_fund_id"

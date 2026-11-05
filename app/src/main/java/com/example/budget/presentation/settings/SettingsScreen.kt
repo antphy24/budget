@@ -31,6 +31,14 @@ import com.example.budget.ui.components.*
 import com.example.budget.ui.theme.Budget
 import com.example.budget.update.UpdateConfig
 import com.example.budget.update.UpdateState
+import com.example.budget.scan.PaymentNotificationListener
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -113,6 +121,10 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            // Smart capture
+            item { SectionHeader("Smart capture") }
+            item { SmartCapture(state, viewModel) }
 
             // Privacy
             item { SectionHeader("Privacy") }
@@ -222,6 +234,77 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SmartCapture(state: SettingsState, viewModel: SettingsViewModel) {
+    val c = Budget.colors
+    val context = LocalContext.current
+    var keyText by remember(state.geminiKey) { mutableStateOf(state.geminiKey) }
+    var listenerOn by remember { mutableStateOf(PaymentNotificationListener.isEnabled(context)) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) listenerOn = PaymentNotificationListener.isEnabled(context) }
+        lifecycle.addObserver(obs)
+        onDispose { lifecycle.removeObserver(obs) }
+    }
+
+    Group {
+        Column(Modifier.padding(16.dp)) {
+            Text("Gemini API key", style = MaterialTheme.typography.titleSmall, color = c.ink)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "Reads receipts, screenshots and payment notifications. Get a free key at aistudio.google.com → Get API key.",
+                style = MaterialTheme.typography.bodySmall, color = c.inkSoft
+            )
+            Spacer(Modifier.height(10.dp))
+            FieldWell(keyText, { keyText = it.trim() }, placeholder = "Paste your key")
+            if (keyText != state.geminiKey) {
+                Spacer(Modifier.height(10.dp))
+                SoftButton("Save key", onClick = { viewModel.saveGeminiKey(keyText) }, contentColor = c.onEmerald, background = c.emerald)
+            }
+        }
+        Hairline()
+        ListRow(
+            title = "Read payment notifications",
+            subtitle = if (listenerOn) "On. Choose which apps below" else "Off. Turn on Budget payment reader in Android's settings",
+            leading = { Glyph(Icons.Outlined.NotificationsActive, tint = if (listenerOn) c.emerald else c.ink, background = if (listenerOn) c.emeraldTint else c.sunk) },
+            trailing = { Text(if (listenerOn) "Change" else "Turn on", style = MaterialTheme.typography.labelLarge, color = c.emerald) },
+            onClick = {
+                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        )
+        if (listenerOn) {
+            Hairline()
+            if (state.paymentApps.isEmpty()) {
+                Text(
+                    "Apps that send payment notifications (with \"Rp\") will appear here after their next notification. Then tick the ones to read.",
+                    style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                state.paymentApps.entries.sortedBy { it.value.lowercase() }.forEachIndexed { i, (pkg, label) ->
+                    if (i > 0) Hairline()
+                    ListRow(
+                        title = label,
+                        trailing = {
+                            Switch(
+                                checked = pkg in state.watchedApps,
+                                onCheckedChange = { on -> viewModel.setAppWatched(pkg, on) },
+                                colors = SwitchDefaults.colors(checkedTrackColor = c.emerald, checkedThumbColor = c.onEmerald)
+                            )
+                        },
+                        onClick = { viewModel.setAppWatched(pkg, pkg !in state.watchedApps) }
+                    )
+                }
+            }
+        }
+    }
+    Text(
+        "Only ticked apps are read, and only messages that mention an amount. What Gemini finds waits in To review until you add it.",
+        style = MaterialTheme.typography.bodySmall, color = c.inkSoft,
+        modifier = Modifier.padding(horizontal = Gutter, vertical = 10.dp)
+    )
 }
 
 @Composable
