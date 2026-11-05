@@ -1,10 +1,13 @@
 name: Release
 
-# Push a tag like v1.2.0+5 to publish a release. Phones with the app see
-# "Version 1.2.0 is ready" and update in the app. Notes come from RELEASE_NOTES.md.
+# Publishing a version: bump version.properties (and write RELEASE_NOTES.md) on main.
+# This builds the APK, creates tag v<name>+<code> and a GitHub Release with budget.apk.
+# Phones with the app then see "Version <name> is ready" and update in the app.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [version.properties]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,14 +18,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read version
+        id: v
+        run: |
+          name=$(sed -n 's/^versionName=//p' version.properties | tr -d '[:space:]')
+          code=$(sed -n 's/^versionCode=//p' version.properties | tr -d '[:space:]')
+          [[ "$name" =~ ^[0-9]+(\.[0-9]+)*$ && "$code" =~ ^[0-9]+$ ]] || { echo "::error::Bad version.properties"; exit 1; }
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "tag=v$name+$code" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if already released
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.v.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"; echo "Release exists, nothing to do."
+          fi
+
       - uses: actions/setup-java@v5
+        if: steps.exists.outputs.already != 'true'
         with:
           distribution: temurin
           java-version: "17"
 
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.exists.outputs.already != 'true'
 
       - name: Restore signing key
+        if: steps.exists.outputs.already != 'true'
         env:
           DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
@@ -32,28 +57,21 @@ jobs:
           mkdir -p ~/.android
           echo "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
 
-      - name: Read version from tag
-        id: v
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          if [[ ! "$tag" =~ ^v([0-9]+(\.[0-9]+)*)\+([0-9]+)$ ]]; then
-            echo "::error::Tag must look like v1.2.0+5"; exit 1
-          fi
-          echo "name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          echo "code=${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
-
       - name: Build release APK
+        if: steps.exists.outputs.already != 'true'
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PversionName=${{ steps.v.outputs.name }} -PversionCode=${{ steps.v.outputs.code }} --stacktrace
+          ./gradlew assembleRelease --stacktrace
           cp app/build/outputs/apk/release/app-release.apk budget.apk
 
       - name: Publish GitHub Release
+        if: steps.exists.outputs.already != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           notes="RELEASE_NOTES.md"
           [ -f "$notes" ] || echo "Improvements and fixes." > "$notes"
-          gh release create "$GITHUB_REF_NAME" budget.apk \
+          gh release create "${{ steps.v.outputs.tag }}" budget.apk \
+            --target "$GITHUB_SHA" \
             --title "Budget ${{ steps.v.outputs.name }}" \
             --notes-file "$notes"

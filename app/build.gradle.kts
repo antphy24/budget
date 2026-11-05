@@ -18,9 +18,12 @@ android {
         applicationId = "com.example.budget"
         minSdk = 26
         targetSdk = 34
-        // Set by the release workflow from the tag (v1.2.0+5 → name 1.2.0, code 5)
-        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = (project.findProperty("versionName") as String?) ?: "1.0"
+        // Version lives in /version.properties; changing it on main publishes a release
+        val versionProps = java.util.Properties().apply {
+            rootProject.file("version.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+        }
+        versionCode = ((project.findProperty("versionCode") ?: versionProps["versionCode"]) as String?)?.toInt() ?: 1
+        versionName = ((project.findProperty("versionName") ?: versionProps["versionName"]) as String?) ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
