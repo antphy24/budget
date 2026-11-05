@@ -12,8 +12,8 @@ fun iconForName(name: String): ImageVector {
         has("grocer", "belanja dapur", "sembako", "market", "pasar") -> Icons.Outlined.LocalGroceryStore
         has("food", "makan", "dining", "drink", "minum", "kopi", "coffee", "jajan", "snack") -> Icons.Outlined.Restaurant
         has("transport", "bensin", "fuel", "ojek", "grab", "gojek", "motor", "parkir", "travel") -> Icons.Outlined.TwoWheeler
-        has("bill", "tagihan", "utilit", "listrik", "pln", "air", "wifi", "internet") -> Icons.Outlined.ReceiptLong
-        has("pulsa", "phone", "data", "kuota") -> Icons.Outlined.PhoneAndroid
+        has("pulsa", "phone", "kuota", "internet", "wifi") -> Icons.Outlined.PhoneAndroid
+        has("bill", "tagihan", "utilit", "listrik", "pln", "pdam") -> Icons.Outlined.ReceiptLong
         has("kos", "rent", "sewa", "rumah", "home", "house") -> Icons.Outlined.Home
         has("shop", "fashion", "baju", "cloth") -> Icons.Outlined.ShoppingBag
         has("health", "sehat", "obat", "doctor", "dokter", "medic") -> Icons.Outlined.HealthAndSafety

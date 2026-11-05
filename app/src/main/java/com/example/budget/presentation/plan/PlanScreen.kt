@@ -80,9 +80,7 @@ fun PlanContent(state: PlanState, actions: PlanActions) {
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
         item {
-            PageHeader("Plan", modifier = Modifier.statusBarsPadding()) {
-                IconButton(onClick = actions.onNewPocket) { Icon(Icons.Outlined.Add, "New pocket", tint = c.ink) }
-            }
+            PageHeader("Plan", modifier = Modifier.statusBarsPadding())
         }
 
         item { DistributeCard(state, actions) }

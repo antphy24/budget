@@ -111,8 +111,8 @@ fun HomeContent(state: HomeState, actions: HomeActions) {
                 Spacer(Modifier.height(12.dp))
                 Group {
                     ListRow(
-                        title = if (state.unallocated >= 1.0) "${rupiah(state.unallocated, state.hidden)} to distribute" else "A new cycle has started",
-                        subtitle = if (state.unallocated >= 1.0) "Split it into your pockets" else "Move last cycle's leftovers to savings",
+                        title = if (state.unallocated >= 1.0) "${rupiah(state.unallocated, state.hidden)} ready" else "New cycle started",
+                        subtitle = if (state.unallocated >= 1.0) "Split it into your pockets" else "Move leftovers to savings",
                         leading = { Glyph(Icons.Outlined.Inbox, tint = c.emerald, background = c.emeraldTint) },
                         trailing = { SoftButton("Distribute", onClick = actions.onDistribute, contentColor = c.onEmerald, background = c.emerald) },
                         onClick = actions.onDistribute
@@ -268,8 +268,8 @@ private fun PocketRow(p: PocketView, hidden: Boolean, onClick: () -> Unit) {
         pace.budgetThisCycle <= 0.0 && pace.balance <= 0.0 -> "Empty. Distribute income to fill it"
         pace.status == PaceStatus.OVERSPENT -> "Overspent. Move money in to cover it"
         pace.status == PaceStatus.LOW -> "Almost empty"
-        pace.status == PaceStatus.FAST -> "Spending fast, ${rupiah(pace.perDayLeft, hidden)} a day left"
-        else -> "${rupiah(pace.perDayLeft, hidden)} a day left"
+        pace.status == PaceStatus.FAST -> "Too fast, ${rupiah(pace.perDayLeft, hidden)} a day"
+        else -> "${rupiah(pace.perDayLeft, hidden)} a day until payday"
     }
     ListRow(
         title = p.fund.name,
@@ -291,10 +291,15 @@ private fun PocketRow(p: PocketView, hidden: Boolean, onClick: () -> Unit) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Row {
-                    Text(caption, style = MaterialTheme.typography.bodySmall, color = statusColor, modifier = Modifier.weight(1f))
+                    Text(
+                        caption, style = MaterialTheme.typography.bodySmall, color = statusColor,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
                     if (pace.budgetThisCycle > 0) {
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            "of ${rupiah(pace.budgetThisCycle, hidden)}",
+                            if (hidden) "" else "of ${rupiahShort(pace.budgetThisCycle)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = c.inkFaint
                         )

@@ -138,7 +138,7 @@ fun ListRow(
                     color = Budget.colors.ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = trailing == null)
+                    modifier = Modifier.weight(1f)
                 )
                 if (trailing != null) {
                     Spacer(Modifier.width(12.dp))

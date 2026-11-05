@@ -47,7 +47,7 @@ object TxPresenter {
                 TxRow(
                     tx = tx,
                     title = memo.ifEmpty { category },
-                    subtitle = listOfNotNull(if (memo.isNotEmpty()) category else null, fund, asset).joinToString(", "),
+                    subtitle = listOfNotNull(if (memo.isNotEmpty()) category else null, fund, asset).distinct().joinToString(", "),
                     icon = iconForName(category),
                     amount = -tx.totalAmount,
                     kind = TxKind.Out,

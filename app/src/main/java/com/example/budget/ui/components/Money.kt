@@ -67,7 +67,7 @@ fun MoneyText(
     color: Color = Color.Unspecified,
     hidden: Boolean = false,
     sign: SignMode = SignMode.Auto,
-    symbolScale: Float = 0.58f,
+    symbolScale: Float? = null,
     symbolColor: Color = Color.Unspecified,
     fontWeight: FontWeight? = null
 ) {
@@ -77,13 +77,17 @@ fun MoneyText(
         SignMode.Auto -> if (negative) "−" else ""
         SignMode.Always -> if (negative) "−" else if (amount.roundToLong() != 0L) "+" else ""
     }
+    // Big figures get a small raised "Rp"; list-size figures keep it legible and nearer the baseline
+    val big = style.fontSize.isSp && style.fontSize.value >= 22f
+    val scale = symbolScale ?: if (big) 0.55f else 0.78f
+    val shift = if (big) 0.36f else 0.12f
     val text = buildAnnotatedString {
         if (signText.isNotEmpty()) append(signText)
         withStyle(
             SpanStyle(
-                fontSize = symbolScale.em,
+                fontSize = scale.em,
                 fontWeight = FontWeight.SemiBold,
-                baselineShift = BaselineShift(0.32f),
+                baselineShift = BaselineShift(shift),
                 color = symbolColor
             )
         ) { append("Rp") }
