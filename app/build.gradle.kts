@@ -102,3 +102,18 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+// Paparazzi (screenshot tests): LayoutLib needs Guava's -jre variant, not the -android one Hilt brings.
+plugins.withId("app.cash.paparazzi") {
+    dependencies.constraints {
+        add("testImplementation", "com.google.guava:guava") {
+            attributes {
+                attribute(
+                    TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
+                    objects.named(TargetJvmEnvironment::class.java, TargetJvmEnvironment.STANDARD_JVM)
+                )
+            }
+            because("LayoutLib and sdk-common depend on Guava's -jre published variant.")
+        }
+    }
+}
