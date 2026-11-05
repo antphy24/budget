@@ -97,7 +97,7 @@ fun HomeContent(state: HomeState, actions: HomeActions) {
                 Group {
                     ListRow(
                         title = "Add your first account",
-                        subtitle = "A bank, an e-wallet or cash: wherever your money is",
+                        subtitle = "Bank, e-wallet or cash",
                         leading = { Glyph(Icons.Outlined.AccountBalanceWallet, tint = c.emerald, background = c.emeraldTint) },
                         trailing = { SoftButton("Add", onClick = actions.onAddAccount) },
                         onClick = actions.onAddAccount
