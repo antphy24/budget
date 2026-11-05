@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,7 +21,7 @@ android {
         minSdk = 26
         targetSdk = 34
         // Version lives in /version.properties; changing it on main publishes a release
-        val versionProps = java.util.Properties().apply {
+        val versionProps = Properties().apply {
             rootProject.file("version.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }
         versionCode = ((project.findProperty("versionCode") ?: versionProps["versionCode"]) as String?)?.toInt() ?: 1
