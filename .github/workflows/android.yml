@@ -46,8 +46,11 @@ jobs:
       - name: Check no usage-statistics uploader is included
         run: |
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-          $BT/aapt2 dump xmltree --file AndroidManifest.xml app/build/outputs/apk/debug/app-debug.apk > manifest.txt
-          grep -E "TransportBackendDiscovery|backend:" -A2 manifest.txt || true
+          $BT/aapt2 dump xmltree app/build/outputs/apk/debug/app-debug.apk --file AndroidManifest.xml > manifest.txt
+          lines=$(wc -l < manifest.txt); echo "manifest lines: $lines"
+          [ "$lines" -gt 50 ] || { echo "::error::Could not read the APK manifest"; cat manifest.txt; exit 1; }
+          echo "--- services:"; grep -A1 "E: service" manifest.txt | grep -o '"[^"]*"' | head -20
+          echo "--- datatransport entries:"; grep -i "datatransport\|backend:" manifest.txt || echo "(none)"
           if grep -q "CctBackendFactory" manifest.txt; then echo "::error::ML Kit telemetry backend is still in the APK"; exit 1; fi
 
       - name: Parser tests
